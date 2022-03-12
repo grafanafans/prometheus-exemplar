@@ -1,0 +1,28 @@
+version: '3.3'
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+  grafana:
+    image: grafana/grafana-enterprise:8.2.0
+    ports:
+      - "3000:3000"
+  prometheus:
+    image: prom/prometheus:v2.33.4
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--enable-feature=exemplar-storage"
+  jaeger:
+    image: jaegertracing/all-in-one:1.32
+    ports:
+      - "16686:16686"
+  loki:
+    image: grafana/loki:2.4.2
