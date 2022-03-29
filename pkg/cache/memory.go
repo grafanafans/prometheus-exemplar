@@ -6,7 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/opentracing/opentracing-go"
+	"go.opentelemetry.io/otel/attribute"
+
+	"github.com/songjiayang/exemplar-demo/pkg/otel"
 )
 
 func init() {
@@ -26,20 +28,14 @@ func NewMemoryCache() *MemoryCache {
 
 func (c *MemoryCache) Get(key string, ctx context.Context) interface{} {
 	var (
-		hit        bool
-		parentSpan = opentracing.SpanFromContext(ctx)
+		hit bool
 	)
 
-	if parentSpan != nil {
-		childSpan := parentSpan.Tracer().StartSpan(
-			"MemoryCache.get",
-			opentracing.ChildOf(parentSpan.Context()))
-		childSpan.SetTag("key", key)
-		defer func() {
-			childSpan.SetTag("hit", hit)
-			childSpan.Finish()
-		}()
-	}
+	_, span := otel.Tracer().Start(ctx, "MemoryCache.get")
+	defer func() {
+		span.SetAttributes(attribute.String("key", key), attribute.Bool("hit", hit))
+		span.End()
+	}()
 
 	// 3% with 200ms sleep and return nil
 	if rand.Intn(100) <= 3 {

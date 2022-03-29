@@ -1,19 +1,15 @@
 package middleware
 
 import (
-	"context"
-	"fmt"
-	"io"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/ext"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/songjiayang/exemplar-demo/pkg/api"
-	"github.com/uber/jaeger-client-go"
-	jaegerConfig "github.com/uber/jaeger-client-go/config"
+	"go.opentelemetry.io/otel/attribute"
+
+	"github.com/songjiayang/exemplar-demo/pkg/otel"
 )
 
 func Metrics(metricPath string, urlMapping func(string) string) gin.HandlerFunc {
@@ -50,54 +46,23 @@ func Metrics(metricPath string, urlMapping func(string) string) gin.HandlerFunc 
 	}
 }
 
-func Jaeger(serviceName, jaegerServer string, pathMapping func(string) string) gin.HandlerFunc {
+func Otel(metricPath string, pathMapping func(string) string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var parentSpan opentracing.Span
-		tracer, closer := newTracer(serviceName, jaegerServer)
-		defer closer.Close()
-		spCtx, err := opentracing.GlobalTracer().Extract(opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(c.Request.Header))
-		if err != nil {
-			parentSpan = tracer.StartSpan(pathMapping(c.Request.URL.Path))
-		} else {
-			parentSpan = opentracing.StartSpan(
-				pathMapping(c.Request.URL.Path),
-				opentracing.ChildOf(spCtx),
-				opentracing.Tag{Key: string(ext.Component), Value: "HTTP"},
-				ext.SpanKindRPCServer,
-			)
-		}
-		defer parentSpan.Finish()
-
-		sc, ok := parentSpan.Context().(jaeger.SpanContext)
-		if ok {
-			reqId := sc.TraceID().String()
-			c.Request.Header.Add(api.XRequestID, reqId)
-			c.Header(api.XRequestID, reqId)
+		if c.Request.URL.Path == metricPath {
+			c.Next()
+			return
 		}
 
-		c.Set("tracer", tracer)
-		c.Set("ctx", opentracing.ContextWithSpan(context.Background(), parentSpan))
+		ctx, span := otel.Tracer().Start(c.Request.Context(), "root")
+		defer span.End()
+
+		span.SetAttributes(attribute.String("path", pathMapping(c.Request.URL.Path)))
+
+		reqId := span.SpanContext().SpanID().String()
+		c.Request.Header.Add(api.XRequestID, reqId)
+		c.Header(api.XRequestID, reqId)
+
+		c.Set("ctx", ctx)
 		c.Next()
 	}
-}
-
-func newTracer(service, host string) (opentracing.Tracer, io.Closer) {
-	cfg := jaegerConfig.Configuration{
-		ServiceName: service,
-		Sampler: &jaegerConfig.SamplerConfig{
-			Type:  jaeger.SamplerTypeConst,
-			Param: 1,
-		},
-		Reporter: &jaegerConfig.ReporterConfig{
-			LogSpans:           true,
-			LocalAgentHostPort: host,
-		},
-	}
-
-	tracer, closer, err := cfg.NewTracer(jaegerConfig.Logger(jaeger.StdLogger))
-	if err != nil {
-		panic(fmt.Sprintf("ERROR: cannot init Jaeger: %v\n", err))
-	}
-	opentracing.SetGlobalTracer(tracer)
-	return tracer, closer
 }

@@ -20,6 +20,7 @@ services:
       - "--web.console.libraries=/usr/share/prometheus/console_libraries"
       - "--web.console.templates=/usr/share/prometheus/consoles"
       - "--enable-feature=exemplar-storage"
+      - "--web.enable-lifecycle"
   jaeger:
     image: jaegertracing/all-in-one:1.32
     ports:

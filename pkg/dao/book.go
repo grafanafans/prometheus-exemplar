@@ -6,7 +6,9 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/opentracing/opentracing-go"
+	"go.opentelemetry.io/otel/attribute"
+
+	"github.com/songjiayang/exemplar-demo/pkg/otel"
 )
 
 func init() {
@@ -31,12 +33,8 @@ func NewMockBookService() *MockBookService {
 	return &MockBookService{}
 }
 func (*MockBookService) List(page, perPage int, ctx context.Context) ([]*Book, error) {
-	if parentSpan := opentracing.SpanFromContext(ctx); parentSpan != nil {
-		childSpan := parentSpan.Tracer().StartSpan(
-			"MockBookService.List",
-			opentracing.ChildOf(parentSpan.Context()))
-		defer childSpan.Finish()
-	}
+	_, span := otel.Tracer().Start(ctx, "MockBookService.List")
+	defer span.End()
 
 	// 5% with 200ms sleep and return nil
 	if rand.Intn(100) <= 5 {
@@ -53,17 +51,14 @@ func (*MockBookService) List(page, perPage int, ctx context.Context) ([]*Book, e
 			UpdatedAt: time.Now(),
 		})
 	}
+
 	return items, nil
 }
 
 func (*MockBookService) Show(id string, ctx context.Context) (*Book, error) {
-	if parentSpan := opentracing.SpanFromContext(ctx); parentSpan != nil {
-		childSpan := parentSpan.Tracer().StartSpan(
-			"MockBookService.Show",
-			opentracing.ChildOf(parentSpan.Context()),
-			opentracing.Tag{Key: "id", Value: id})
-		defer childSpan.Finish()
-	}
+	_, span := otel.Tracer().Start(ctx, "MockBookService.Show")
+	span.SetAttributes(attribute.String("id", id))
+	defer span.End()
 
 	// 5% with 200ms sleep and return nil
 	if rand.Intn(100) <= 5 {

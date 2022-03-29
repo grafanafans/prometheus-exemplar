@@ -15,21 +15,29 @@ import (
 	"github.com/songjiayang/exemplar-demo/pkg/dao"
 	"github.com/songjiayang/exemplar-demo/pkg/lokicore"
 	"github.com/songjiayang/exemplar-demo/pkg/middleware"
+	"github.com/songjiayang/exemplar-demo/pkg/otel"
 )
 
 var (
-	appName = "exemplar-demo"
+	appName    = "exemplar-demo"
+	metricPath = "/metrics"
 )
 
 func main() {
 	logger := NewLokiLogger()
 
+	//set otel provider
+	err := otel.SetTracerProvider(appName, "test", "http://jaeger:14268/api/traces")
+	if err != nil {
+		logger.Fatal(err.Error())
+	}
+
 	r := gin.New()
 	r.Use(ginzap.Ginzap(logger, time.RFC3339, true))
 	r.Use(ginzap.RecoveryWithZap(logger, true))
 	urlMapping := NewUrlMapping()
-	r.Use(middleware.Jaeger(appName, "jaeger:6831", urlMapping))
-	r.Use(middleware.Metrics("/metrics", urlMapping))
+	r.Use(middleware.Otel(metricPath, urlMapping))
+	r.Use(middleware.Metrics(metricPath, urlMapping))
 
 	myApi := api.NewApi(logger, cache.NewMemoryCache(), dao.NewMockBookService())
 	r.GET("/v1/books", myApi.Book.Index)
@@ -43,7 +51,7 @@ func main() {
 		},
 	)
 
-	r.GET("/metrics", func(ctx *gin.Context) {
+	r.GET(metricPath, func(ctx *gin.Context) {
 		metricHandler.ServeHTTP(ctx.Writer, ctx.Request)
 	})
 
