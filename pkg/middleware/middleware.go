@@ -58,7 +58,7 @@ func Otel(metricPath string, pathMapping func(string) string) gin.HandlerFunc {
 
 		span.SetAttributes(attribute.String("path", pathMapping(c.Request.URL.Path)))
 
-		reqId := span.SpanContext().SpanID().String()
+		reqId := span.SpanContext().TraceID().String()
 		c.Request.Header.Add(api.XRequestID, reqId)
 		c.Header(api.XRequestID, reqId)
 
