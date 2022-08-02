@@ -7,7 +7,7 @@ A random duration response app to test prometheus exemplar.
 1. clone code and build app
 
 ```bash
-git clone git@github.com:songjiayang/prometheus-exemplar.git
+git clone git@github.com:t00350320/prometheus-exemplar.git
 cd prometheus-exemplar
 go mod vendor
 docker-compose build
