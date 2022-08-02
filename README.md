@@ -44,9 +44,9 @@ curl -v http://0.0.0.0:8080/v1/books
 
 ### Add data sources
 
-- add Mimir
-HTTP URL：http://load-balancer:9009/prometheus  
-add exemplar configuration:  
+- add Mimir  
+HTTP URL：http://load-balancer:9009/prometheus      
+add exemplar configuration:    
 ![mimir-exemplar](https://user-images.githubusercontent.com/41465048/182307110-f9275ec3-923f-45c2-b373-5974f17ad42e.PNG)
 
 
