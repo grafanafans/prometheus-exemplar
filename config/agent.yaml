@@ -1,0 +1,35 @@
+metrics:
+  wal_directory: /tmp/grafana-agent/wal
+  
+  global:
+    scrape_interval: 5s
+    external_labels:
+      cluster: demo
+      namespace: demo
+      
+  configs:
+    - name: demo/mimir
+      scrape_configs:
+        - job_name: demo/mimir
+          static_configs:
+            - targets: [ 'mimir-1:8080' ]
+              labels:
+                pod: 'mimir-1'
+            - targets: [ 'mimir-2:8080' ]
+              labels:
+                pod: 'mimir-2'
+            - targets: [ 'mimir-3:8080' ]
+              labels:
+                pod: 'mimir-3'
+            - targets: [ 'mimir-3:8080' ]
+              labels:
+                pod: 'mimir-3'
+            - targets: [ 'app:8080' ]
+              labels:
+                pod: 'app'
+      remote_write:
+        - url: http://load-balancer:9009/api/v1/push
+          send_exemplars: true
+          headers:
+            X-Scope-OrgID: demo
+            

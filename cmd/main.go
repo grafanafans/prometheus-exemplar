@@ -27,7 +27,7 @@ func main() {
 	logger := NewLokiLogger()
 
 	//set otel provider
-	err := otel.SetTracerProvider(appName, "test", "http://jaeger:14268/api/traces")
+	err := otel.SetTracerProvider(appName, "test", "http://tempo:14268/api/traces")
 	if err != nil {
 		logger.Fatal(err.Error())
 	}
