@@ -3,17 +3,67 @@ services:
   minio:
     image: minio/minio
     entrypoint: [""]
-    command: ["sh", "-c", "mkdir -p /data/mimir-blocks /data/mimir-ruler /data/mimir-alertmanager && minio server --quiet /data"]
+    command: ["sh", "-c", "mkdir -p /data/mimir-blocks /data/mimir-ruler /data/mimir-alertmanager /data/tempo /data/loki-data /data/loki-ruler && minio server /data --console-address :9001"]
     environment:
-      - MINIO_ACCESS_KEY=mimir
+      - MINIO_ACCESS_KEY=minio
       - MINIO_SECRET_KEY=supersecret
     volumes:
       - minio-data:/data
+    ports:
+      - "9001:9001"
+
   app:
-    build: .
+    image: app:0.0.1
     ports:
       - "8080:8080"
-  
+
+  grafana:
+    image: grafana/grafana:latest
+    pull_policy: always
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_USERS_DEFAULT_THEME=light
+      - GF_LOG_MODE=console
+      - GF_LOG_LEVEL=critical
+    ports:
+      - "3000:3000"
+      
+  mimir:
+    image: grafana/mimir:2.2.0
+    command: ["-config.file=/etc/mimir.yaml"]
+    hostname: mimir
+    depends_on:
+      - minio
+    volumes:
+      - ./config/mimir.yaml:/etc/mimir.yaml
+      - mimir-data:/data
+
+  loki:
+    image: grafana/loki:2.6.1
+    command: "-config.file=/etc/loki/config.yaml"
+    ports:
+      - 3101:3100
+      - 7946
+      - 9095
+    volumes:
+      - ./config/loki.yaml:/etc/loki/config.yaml
+    depends_on:
+      - minio
+
+  tempo:
+    image: grafana/tempo:latest
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./config/tempo.yaml:/etc/tempo.yaml
+      - tempo-data:/tmp/tempo
+    ports:
+      - "14268"      # jaeger
+      - "3200:3200"  # tempo
+    restart: on-failure
+    depends_on:
+      - minio
+
   agent:
     image: grafana/agent:latest
     volumes:
@@ -27,119 +77,11 @@ services:
     ports:
       - "12345:12345"
     depends_on:
-      - "mimir-1"
-      - "mimir-2"
-      - "mimir-3"
-      - "promrandom"
-
-  grafana:
-    image: grafana/grafana:latest
-    pull_policy: always
-    environment:
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-      - GF_USERS_DEFAULT_THEME=light
-      - GF_LOG_MODE=console
-      - GF_LOG_LEVEL=critical
-
-    volumes:
-      - ./config/grafana-provisioning-dashboards.yaml:/etc/grafana/provisioning/dashboards/provisioning-dashboards.yaml:ro
-      - ./config/grafana-provisioning-datasources.yaml:/etc/grafana/provisioning/datasources/provisioning-datasources.yaml:ro
-    ports:
-      - "3000:3000"
-  prometheus:
-    image: prom/prometheus:v2.33.4
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.path=/prometheus"
-      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
-      - "--web.console.templates=/usr/share/prometheus/consoles"
-      - "--enable-feature=exemplar-storage"
-      - "--web.enable-lifecycle"
-
-  loki:
-    image: grafana/loki:2.3.0
-    command: [ "-config.file=/etc/loki/local-config.yaml" ]
-    ports:
-      - "3100:3100"                                   # loki needs to be exposed so it receives logs
-    environment:
-      - JAEGER_AGENT_HOST=tempo
-      - JAEGER_ENDPOINT=http://tempo:14268/api/traces # send traces to Tempo
-      - JAEGER_SAMPLER_TYPE=const
-      - JAEGER_SAMPLER_PARAM=1
-    logging:
-      driver: loki
-      options:
-        loki-url: 'http://localhost:3100/loki/api/v1/push'
-
-
-  tempo:
-    image: grafana/tempo:latest
-    command: [ "-config.file=/etc/tempo.yaml" ]
-    volumes:
-      - ./local/tempo-local.yaml:/etc/tempo.yaml
-      - ./tempo-data:/tmp/tempo
-    ports:
-      - "14268"  # jaeger ingest
-    logging:
-      driver: loki
-      options:
-        loki-url: 'http://localhost:3100/loki/api/v1/push'
-
-  load-balancer:
-    image: nginx:latest
-    volumes:
-      - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - "mimir-1"
-      - "mimir-2"
-      - "mimir-3"
-    ports:
-      - 9009:9009
-
-  mimir-1:
-    image: grafana/mimir:latest
-    command: ["-config.file=/etc/mimir.yaml"]
-    hostname: mimir-1
-    depends_on:
-      - minio
-    volumes:
-      - ./config/mimir.yaml:/etc/mimir.yaml
-      - ./config/overrides.yaml:/etc/overrides.yaml
-      - ./config/alertmanager-fallback-config.yaml:/etc/alertmanager-fallback-config.yaml
-      - mimir-1-data:/data
-
-  mimir-2:
-    image: grafana/mimir:latest
-    command: ["-config.file=/etc/mimir.yaml"]
-    hostname: mimir-2
-    depends_on:
-      - minio
-    volumes:
-      - ./config/mimir.yaml:/etc/mimir.yaml
-      - ./config/overrides.yaml:/etc/overrides.yaml
-      - ./config/alertmanager-fallback-config.yaml:/etc/alertmanager-fallback-config.yaml
-      - mimir-2-data:/data
-
-  mimir-3:
-    image: grafana/mimir:latest
-    command: ["-config.file=/etc/mimir.yaml"]
-    hostname: mimir-3
-    depends_on:
-      - minio
-    volumes:
-      - ./config/mimir.yaml:/etc/mimir.yaml
-      - ./config/overrides.yaml:/etc/overrides.yaml
-      - ./config/alertmanager-fallback-config.yaml:/etc/alertmanager-fallback-config.yaml
-      - mimir-3-data:/data
+      - mimir
+      - app
 
 volumes:
-  mimir-1-data:
-  mimir-2-data:
-  mimir-3-data:
+  mimir-data:
+  tempo-data:
   minio-data:
 

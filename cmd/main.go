@@ -68,6 +68,7 @@ func NewLokiLogger() *zap.Logger {
 		Labels: map[string]string{
 			"app": appName,
 		},
+		TenantID: "demo",
 	}
 
 	lokiCore, err := lokicore.NewLokiCore(cfg)

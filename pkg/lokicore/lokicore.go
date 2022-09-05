@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/afiskon/promtail-client/promtail"
+	"github.com/songjiayang/exemplar-demo/pkg/promtail-client"
 	"go.uber.org/zap/zapcore"
 )
 
@@ -28,6 +28,7 @@ type LokiClientConfig struct {
 	Labels             map[string]string
 	BatchWait          time.Duration
 	BatchEntriesNumber int
+	TenantID           string
 }
 
 func (c *LokiClientConfig) setDefault() {
@@ -83,6 +84,7 @@ func NewLokiCore(c *LokiClientConfig) (*LokiCore, error) {
 		BatchEntriesNumber: c.BatchEntriesNumber,
 		SendLevel:          promtailLevel[c.SendLevel],
 		PrintLevel:         promtail.DISABLE,
+		TenantID:           c.TenantID,
 	}
 
 	clients := make(map[zapcore.Level]promtail.Client)
