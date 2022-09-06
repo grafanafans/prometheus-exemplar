@@ -24,6 +24,9 @@ services:
     image: app:0.0.1
     ports:
       - "8080:8080"
+    depends_on:
+      - redis
+      - mysql
       
   mimir:
     image: grafana/mimir:2.2.0
@@ -54,8 +57,8 @@ services:
       - ./config/tempo.yaml:/etc/tempo.yaml
       - tempo-data:/tmp/tempo
     ports:
-      - "14268"      # jaeger
-      - "3200:3200"  # tempo
+      - "14268"     
+      - "3200:3200"  
     restart: on-failure
     depends_on:
       - minio
