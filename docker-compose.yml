@@ -21,7 +21,7 @@ services:
       - MYSQL_ROOT_PASSWORD=supersecret
 
   app:
-    image: app:0.0.1
+    image: songjiayang/prometheus-exemplar:0.0.1
     ports:
       - "8080:8080"
     depends_on:
