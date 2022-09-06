@@ -63,7 +63,6 @@ func NewLokiLogger() *zap.Logger {
 
 	cfg := &lokicore.LokiClientConfig{
 		URL:       "http://loki:3100/api/prom/push",
-		LevelName: "severity",
 		SendLevel: zapcore.InfoLevel,
 		Labels: map[string]string{
 			"app": appName,

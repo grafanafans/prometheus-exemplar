@@ -22,13 +22,15 @@ var promtailLevel = map[zapcore.Level]promtail.LogLevel{
 }
 
 type LokiClientConfig struct {
-	URL                string
-	LevelName          string
-	SendLevel          zapcore.Level
-	Labels             map[string]string
+	URL             string
+	LevelName       string
+	SendLevel       zapcore.Level
+	Labels          map[string]string
+	TenantID        string
+	SplitLogByLevel bool
+
 	BatchWait          time.Duration
 	BatchEntriesNumber int
-	TenantID           string
 }
 
 func (c *LokiClientConfig) setDefault() {
@@ -55,7 +57,10 @@ func (c *LokiClientConfig) setDefault() {
 }
 
 func (c *LokiClientConfig) genLabelsWithLogLevel(level string) string {
-	c.Labels[c.LevelName] = level
+	if c.SplitLogByLevel {
+		c.Labels[c.LevelName] = level
+	}
+
 	labelsList := []string{}
 	for k, v := range c.Labels {
 		labelsList = append(labelsList, fmt.Sprintf(`%s="%s"`, k, v))
@@ -78,6 +83,7 @@ func NewLokiCore(c *LokiClientConfig) (*LokiCore, error) {
 		c = &LokiClientConfig{}
 	}
 	c.setDefault()
+
 	conf := promtail.ClientConfig{
 		PushURL:            c.URL,
 		BatchWait:          c.BatchWait,

@@ -16,18 +16,6 @@ services:
     image: app:0.0.1
     ports:
       - "8080:8080"
-
-  grafana:
-    image: grafana/grafana:latest
-    pull_policy: always
-    environment:
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-      - GF_USERS_DEFAULT_THEME=light
-      - GF_LOG_MODE=console
-      - GF_LOG_LEVEL=critical
-    ports:
-      - "3000:3000"
       
   mimir:
     image: grafana/mimir:2.2.0
@@ -52,7 +40,7 @@ services:
       - minio
 
   tempo:
-    image: grafana/tempo:latest
+    image: grafana/tempo:1.5.0
     command: [ "-config.file=/etc/tempo.yaml" ]
     volumes:
       - ./config/tempo.yaml:/etc/tempo.yaml
@@ -65,7 +53,7 @@ services:
       - minio
 
   agent:
-    image: grafana/agent:latest
+    image: grafana/agent:v0.27.0
     volumes:
       - ./config/agent.yaml:/etc/agent-config/agent.yaml
     entrypoint:
@@ -79,6 +67,18 @@ services:
     depends_on:
       - mimir
       - app
+
+  grafana:
+    image: grafana/grafana:9.1.3
+    pull_policy: always
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_USERS_DEFAULT_THEME=light
+      - GF_LOG_MODE=console
+      - GF_LOG_LEVEL=critical
+    ports:
+      - "3000:3000"
 
 volumes:
   mimir-data:
