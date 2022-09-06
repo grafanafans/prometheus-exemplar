@@ -32,6 +32,10 @@ func main() {
 		logger.Fatal(err.Error())
 	}
 
+	if err = dao.InitMysqlDB(); err != nil {
+		logger.Fatal(err.Error())
+	}
+
 	r := gin.New()
 	r.Use(ginzap.Ginzap(logger, time.RFC3339, true))
 	r.Use(ginzap.RecoveryWithZap(logger, true))
@@ -39,7 +43,7 @@ func main() {
 	r.Use(middleware.Otel(metricPath, urlMapping))
 	r.Use(middleware.Metrics(metricPath, urlMapping))
 
-	myApi := api.NewApi(logger, cache.NewRedisCache(logger), dao.NewMockBookService())
+	myApi := api.NewApi(logger, cache.NewRedisCache(logger), dao.NewMysqlBookService())
 	r.GET("/v1/books", myApi.Book.Index)
 	r.GET("/v1/books/:id", myApi.Book.Show)
 

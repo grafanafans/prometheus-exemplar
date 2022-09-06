@@ -16,7 +16,7 @@ func init() {
 }
 
 type Book struct {
-	Id        string    `json:"id"`
+	Id        string    `json:"id" gorm:"uniqueIndex"`
 	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -32,6 +32,7 @@ type MockBookService struct{}
 func NewMockBookService() *MockBookService {
 	return &MockBookService{}
 }
+
 func (*MockBookService) List(page, perPage int, ctx context.Context) ([]*Book, error) {
 	_, span := otel.Tracer().Start(ctx, "MockBookService.List")
 	defer span.End()
@@ -71,4 +72,27 @@ func (*MockBookService) Show(id string, ctx context.Context) (*Book, error) {
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}, nil
+}
+
+type MysqlBookService struct{}
+
+func NewMysqlBookService() *MysqlBookService {
+	return &MysqlBookService{}
+}
+
+func (*MysqlBookService) List(page, perPage int, ctx context.Context) (items []*Book, err error) {
+	_, span := otel.Tracer().Start(ctx, "MysqlBookService.List")
+	defer span.End()
+
+	err = db.Find(&items).Limit(10).Error
+	return
+}
+
+func (*MysqlBookService) Show(id string, ctx context.Context) (item *Book, err error) {
+	_, span := otel.Tracer().Start(ctx, "MysqlBookService.Show")
+	span.SetAttributes(attribute.String("id", id))
+	defer span.End()
+
+	err = db.Where(Book{Id: id}).Find(&item).Error
+	return
 }

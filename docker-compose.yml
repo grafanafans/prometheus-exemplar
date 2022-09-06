@@ -11,17 +11,25 @@ services:
       - minio-data:/data
     ports:
       - "9001:9001"
-
+  
+  redis:
+    image: redis:6.2.7
+  
+  mysql:
+    image: mysql:5.7.39
+    environment:
+      - MYSQL_ROOT_PASSWORD=supersecret
+  
   app:
     image: app:0.0.1
     ports:
       - "8080:8080"
-  
-  redis:
-    image: redis:6.2.7
+    depends_on:
+      - redis
+      - mysql
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:9.1.2
     pull_policy: always
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
