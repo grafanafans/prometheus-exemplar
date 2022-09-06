@@ -8,27 +8,16 @@ metrics:
       namespace: demo
       
   configs:
-    - name: demo/mimir
+    - name: demo
       scrape_configs:
-        - job_name: demo/mimir
+        - job_name: mimir
           static_configs:
-            - targets: [ 'mimir-1:8080' ]
-              labels:
-                pod: 'mimir-1'
-            - targets: [ 'mimir-2:8080' ]
-              labels:
-                pod: 'mimir-2'
-            - targets: [ 'mimir-3:8080' ]
-              labels:
-                pod: 'mimir-3'
-            - targets: [ 'mimir-3:8080' ]
-              labels:
-                pod: 'mimir-3'
+            - targets: [ 'mimir:8080' ]
+        - job_name: exemplar-app
+          static_configs:
             - targets: [ 'app:8080' ]
-              labels:
-                pod: 'app'
       remote_write:
-        - url: http://load-balancer:9009/api/v1/push
+        - url: http://mimir:8080/api/v1/push
           send_exemplars: true
           headers:
             X-Scope-OrgID: demo

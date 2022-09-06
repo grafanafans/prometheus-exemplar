@@ -1,5 +1,0 @@
-overrides:
-  demo:
-    compactor_split_and_merge_shards: 2
-    compactor_split_groups: 2
-    max_global_exemplars_per_user: 100000
