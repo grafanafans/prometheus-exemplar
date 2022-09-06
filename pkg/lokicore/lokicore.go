@@ -5,8 +5,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/songjiayang/exemplar-demo/pkg/promtail-client"
 	"go.uber.org/zap/zapcore"
+
+	"github.com/songjiayang/exemplar-demo/pkg/promtail-client"
 )
 
 var emptyZapEntCaller = zapcore.EntryCaller{}
@@ -26,18 +27,21 @@ type LokiClientConfig struct {
 	LevelName          string
 	SendLevel          zapcore.Level
 	Labels             map[string]string
+	TenantID           string
+	SplitSeverity      bool
 	BatchWait          time.Duration
 	BatchEntriesNumber int
-	TenantID           string
 }
 
 func (c *LokiClientConfig) setDefault() {
 	if c.URL == "" {
 		c.URL = "http://localhost:3100/api/prom/push"
 	}
+
 	if c.LevelName == "" {
 		c.LevelName = "severity"
 	}
+
 	if len(c.Labels) == 0 {
 		c.Labels = map[string]string{
 			"source": "test",
@@ -55,7 +59,12 @@ func (c *LokiClientConfig) setDefault() {
 }
 
 func (c *LokiClientConfig) genLabelsWithLogLevel(level string) string {
-	c.Labels[c.LevelName] = level
+	// disable severity split in default
+
+	if c.SplitSeverity {
+		c.Labels[c.LevelName] = level
+	}
+
 	labelsList := []string{}
 	for k, v := range c.Labels {
 		labelsList = append(labelsList, fmt.Sprintf(`%s="%s"`, k, v))
@@ -77,7 +86,9 @@ func NewLokiCore(c *LokiClientConfig) (*LokiCore, error) {
 	if c == nil {
 		c = &LokiClientConfig{}
 	}
+
 	c.setDefault()
+
 	conf := promtail.ClientConfig{
 		PushURL:            c.URL,
 		BatchWait:          c.BatchWait,
@@ -91,10 +102,12 @@ func NewLokiCore(c *LokiClientConfig) (*LokiCore, error) {
 	for k := range promtailLevel {
 		conf.Labels = c.genLabelsWithLogLevel(k.String())
 		clients[k], err = promtail.NewClientJson(conf)
+
 		if err != nil {
 			return nil, fmt.Errorf("unable to init promtail client: %v", err)
 		}
 	}
+
 	return &LokiCore{
 		cfg:          c,
 		clients:      clients,

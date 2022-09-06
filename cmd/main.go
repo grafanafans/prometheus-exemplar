@@ -39,7 +39,7 @@ func main() {
 	r.Use(middleware.Otel(metricPath, urlMapping))
 	r.Use(middleware.Metrics(metricPath, urlMapping))
 
-	myApi := api.NewApi(logger, cache.NewMemoryCache(), dao.NewMockBookService())
+	myApi := api.NewApi(logger, cache.NewRedisCache(logger), dao.NewMockBookService())
 	r.GET("/v1/books", myApi.Book.Index)
 	r.GET("/v1/books/:id", myApi.Book.Show)
 
@@ -63,7 +63,6 @@ func NewLokiLogger() *zap.Logger {
 
 	cfg := &lokicore.LokiClientConfig{
 		URL:       "http://loki:3100/api/prom/push",
-		LevelName: "severity",
 		SendLevel: zapcore.InfoLevel,
 		Labels: map[string]string{
 			"app": appName,

@@ -16,6 +16,9 @@ services:
     image: app:0.0.1
     ports:
       - "8080:8080"
+  
+  redis:
+    image: redis:6.2.7
 
   grafana:
     image: grafana/grafana:latest

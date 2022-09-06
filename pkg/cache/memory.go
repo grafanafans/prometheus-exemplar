@@ -5,10 +5,6 @@ import (
 	"math/rand"
 	"sync"
 	"time"
-
-	"go.opentelemetry.io/otel/attribute"
-
-	"github.com/songjiayang/exemplar-demo/pkg/otel"
 )
 
 func init() {
@@ -27,27 +23,17 @@ func NewMemoryCache() *MemoryCache {
 }
 
 func (c *MemoryCache) Get(key string, ctx context.Context) interface{} {
-	var (
-		hit bool
-	)
+	return getWithOtel(ctx, "MemoryCache.get", key, func() (bool, interface{}) {
+		// 3% with 200ms sleep and return nil
+		if rand.Intn(100) <= 3 {
+			time.Sleep(200 * time.Millisecond)
+			return false, nil
+		}
 
-	_, span := otel.Tracer().Start(ctx, "MemoryCache.get")
-	defer func() {
-		span.SetAttributes(attribute.String("key", key), attribute.Bool("hit", hit))
-		span.End()
-	}()
-
-	// 3% with 200ms sleep and return nil
-	if rand.Intn(100) <= 3 {
-		time.Sleep(200 * time.Millisecond)
-		hit = false
-		return nil
-	}
-	hit = true
-
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-	return c.items[key]
+		c.lock.RLock()
+		defer c.lock.RUnlock()
+		return true, c.items[key]
+	})
 }
 
 func (c *MemoryCache) Set(key string, item interface{}) error {

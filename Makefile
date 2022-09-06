@@ -1,6 +1,6 @@
 build:
-	docker build -t app:0.0.1 .
+	sudo docker build -t app:0.0.1 .
 start:
-	docker-compose up -d 
+	sudo docker-compose up -d 
 stop:
-	docker-compose down
+	sudo docker-compose down
