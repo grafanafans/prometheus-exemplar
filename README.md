@@ -15,7 +15,6 @@ make start
 use wrk to send requests
 
 ```
-
 sudo apt install wrk
 
 wrk -c 2 -d 3000 http://localhost:8080/v1/books

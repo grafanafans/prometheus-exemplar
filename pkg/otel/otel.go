@@ -1,12 +1,15 @@
 package otel
 
 import (
+	"context"
+
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/exporters/jaeger"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/sdk/resource"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.9.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -16,15 +19,18 @@ func Tracer() trace.Tracer {
 	return otel.Tracer(serviceName)
 }
 
-func SetTracerProvider(name, environment, url string) error {
+func SetTracerProvider(name, environment string) (tp *tracesdk.TracerProvider, err error) {
 	serviceName = name
 
-	exp, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(url)))
+	exp, err := otlptrace.New(context.Background(), otlptracehttp.NewClient(
+		otlptracehttp.WithEndpoint("otel-collector:4318"),
+		otlptracehttp.WithInsecure(),
+	))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	tp := tracesdk.NewTracerProvider(
+	tp = tracesdk.NewTracerProvider(
 		tracesdk.WithBatcher(exp),
 		tracesdk.WithResource(resource.NewWithAttributes(
 			semconv.SchemaURL,
@@ -34,6 +40,5 @@ func SetTracerProvider(name, environment, url string) error {
 	)
 
 	otel.SetTracerProvider(tp)
-
-	return nil
+	return tp, err
 }

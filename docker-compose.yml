@@ -79,6 +79,14 @@ services:
       - mimir
       - app
 
+  otel-collector:
+    image: otel/opentelemetry-collector
+    command: ["--config=/etc/otel-collector.yaml"]
+    volumes:
+      - ./config/otel-collector.yaml:/etc/otel-collector.yaml
+    depends_on:
+      - tempo
+
   grafana:
     image: grafana/grafana:9.1.3
     pull_policy: always
