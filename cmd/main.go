@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"time"
 
 	ginzap "github.com/gin-contrib/zap"
@@ -24,13 +25,14 @@ var (
 )
 
 func main() {
-	logger := NewLokiLogger()
+	logger := newLokiLogger()
 
 	//set otel provider
-	err := otel.SetTracerProvider(appName, "test", "http://tempo:14268/api/traces")
+	tp, err := otel.SetTracerProvider(appName, "test")
 	if err != nil {
 		logger.Fatal(err.Error())
 	}
+	defer tp.Shutdown(context.Background())
 
 	if err := dao.InitDB(); err != nil {
 		logger.Fatal(err.Error())
@@ -39,7 +41,7 @@ func main() {
 	r := gin.New()
 	r.Use(ginzap.Ginzap(logger, time.RFC3339, true))
 	r.Use(ginzap.RecoveryWithZap(logger, true))
-	urlMapping := NewUrlMapping()
+	urlMapping := newUrlMapping()
 	r.Use(middleware.Otel(metricPath, urlMapping))
 	r.Use(middleware.Metrics(metricPath, urlMapping))
 
@@ -62,7 +64,7 @@ func main() {
 	r.Run(":8080")
 }
 
-func NewLokiLogger() *zap.Logger {
+func newLokiLogger() *zap.Logger {
 	logger, _ := zap.NewProduction()
 
 	cfg := &lokicore.LokiClientConfig{
@@ -84,7 +86,7 @@ func NewLokiLogger() *zap.Logger {
 	}))
 }
 
-func NewUrlMapping() func(string) string {
+func newUrlMapping() func(string) string {
 	return func(path string) string {
 		switch path {
 		case "/v1/books", "/ping":
