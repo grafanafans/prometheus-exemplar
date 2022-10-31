@@ -1,6 +1,6 @@
 # prometheus-exemplar
 
-A random duration response app to test prometheus exemplar.
+A random duration response app to test Grafana LGTM stack.
 
 ## Installation
 
@@ -10,67 +10,50 @@ A random duration response app to test prometheus exemplar.
 git clone git@github.com:grafanafans/prometheus-exemplar.git
 cd prometheus-exemplar
 go mod vendor
-docker-compose build
+make build
 ```
 
 2. start app
 
 ```
-docker-compose up
+make start
 ```
 
 3. stop app
 
 ```
-docker-compose down
+make down
 ```
 
 ## How to test
 
-1. use wrk to send requests
-```
-wrk -c 2 -d 3000 http://localhost:8080/v1/books
-wrk -c 2 -d 3000 http://localhost:8080/v1/books/1
-```
-2. If you failed to install wrk tool, you can modify Metrics function in middleware.go by adding sleep time to simulate an timeout.  
-
-```go
-func Metrics(metricPath string, urlMapping func(string) string) gin.HandlerFunc {
-  ....
-  method := c.Request.Method
-  url := urlMapping(c.Request.URL.Path)
-  // add sleep time
-  time.Sleep(time.Second)
-
-  elapsed := float64(time.Since(start)) / float64(time.Second)
-  ...
-}
-```
-
-then curl:
+use wrk to send requests
 
 ```
-curl -v http://0.0.0.0:8080/v1/books
+wrk http://localhost:8080/v1/books
+wrk http://localhost:8080/v1/books/1
 ```
+
+Then visit `http://localhost:3000` page to see demo app dashboard.
 
 ## All in one with Grafana
 
 ### Add data sources
 
-#### add Mimir  
-- HTTP URL：http://load-balancer:9009/prometheus      
-- add exemplar configuration:  
+#### add Mimir 
 
+- HTTP URL：http://lb.com/metrics      
+- add exemplar configuration:  
 ![mimir-exemplar](https://user-images.githubusercontent.com/41465048/182307110-f9275ec3-923f-45c2-b373-5974f17ad42e.PNG)
 
 
 #### add Tempo  
 
-- HTTP URL:http://tempo:3200  
+- HTTP URL:http://lb.com/traces  
 
 #### add Loki with Derived fields  
 
-- HTTP URL:http://loki:3100  
+- HTTP URL:http://lb.com/logs
 - Regex:(?:traceID|trace_id|TraceID|TraceId)=(\w+)  
 - NOTICE: Regex can be modified according to your own TraceID characters.  
 
