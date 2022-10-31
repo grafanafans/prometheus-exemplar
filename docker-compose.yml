@@ -103,7 +103,7 @@ services:
       - tempo
   
   app:
-    image: app:0.0.1
+    image: songjiayang/prometheus-exemplar:0.0.1
     ports:
       - "8080:8080"
     volumes:
