@@ -22,7 +22,7 @@ func (b *Book) Index(ctx *gin.Context) {
 	perPage, _ := strconv.ParseInt(ctx.Param("perPage"), 10, 64)
 
 	logger.Info("start list books with cache")
-	if cache := b.Base.cache.Get("book:list", spanCtx); cache != nil {
+	if cache := b.Base.cache.Get("book:list", spanCtx, logger); cache != nil {
 		logger.Info("listed books with cache")
 		ctx.JSON(200, cache)
 		return
@@ -36,7 +36,7 @@ func (b *Book) Index(ctx *gin.Context) {
 	}
 
 	logger.Info("start setting books cache")
-	b.Base.cache.Set("book:list", books)
+	b.Base.cache.Set("book:list", books, logger)
 	logger.Info("end setting books cache")
 
 	ctx.JSON(200, books)
@@ -50,7 +50,7 @@ func (b *Book) Show(ctx *gin.Context) {
 	cacheKey := "book:show:" + id
 
 	logger.Info(fmt.Sprintf("get book info with cache key %s", cacheKey))
-	if cache := b.Base.cache.Get(cacheKey, spanCtx); cache != nil {
+	if cache := b.Base.cache.Get(cacheKey, spanCtx, logger); cache != nil {
 		ctx.JSON(200, cache)
 		return
 	}
@@ -64,7 +64,7 @@ func (b *Book) Show(ctx *gin.Context) {
 	}
 
 	logger.Info("start setting book cache")
-	b.Base.cache.Set(cacheKey, book)
+	b.Base.cache.Set(cacheKey, book, logger)
 	logger.Info("end setting book cache")
 	ctx.JSON(200, book)
 }

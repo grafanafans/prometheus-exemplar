@@ -11,11 +11,10 @@ import (
 )
 
 type RedisCache struct {
-	logger *zap.Logger
 	client *redis.Client
 }
 
-func NewRedisCache(logger *zap.Logger) *RedisCache {
+func NewRedisCache() *RedisCache {
 	client := redis.NewClient(&redis.Options{
 		Addr:     "redis:6379",
 		Password: "",
@@ -28,12 +27,11 @@ func NewRedisCache(logger *zap.Logger) *RedisCache {
 	}
 
 	return &RedisCache{
-		logger: logger,
 		client: client,
 	}
 }
 
-func (c *RedisCache) Get(key string, ctx context.Context) interface{} {
+func (c *RedisCache) Get(key string, ctx context.Context, logger *zap.Logger) interface{} {
 	return getWithOtel(ctx, "RedisCache.get", key, func() (bool, interface{}) {
 		if rand.Intn(100) <= 10 {
 			return false, nil
@@ -42,7 +40,7 @@ func (c *RedisCache) Get(key string, ctx context.Context) interface{} {
 		cmd := c.client.Get(ctx, key)
 
 		if err := cmd.Err(); err != nil {
-			c.logger.Info("RedisCache not found ")
+			logger.Info("RedisCache not found ")
 			return false, nil
 		}
 
@@ -50,12 +48,12 @@ func (c *RedisCache) Get(key string, ctx context.Context) interface{} {
 	})
 }
 
-func (c *RedisCache) Set(key string, item interface{}) error {
+func (c *RedisCache) Set(key string, item interface{}, logger *zap.Logger) error {
 	data, _ := json.Marshal(item)
 
 	cmd := c.client.SetNX(context.Background(), key, data, 10*time.Minute)
 	if err := cmd.Err(); err != nil {
-		c.logger.Info("redis cache set with error: " + err.Error())
+		logger.Info("redis cache set with error: " + err.Error())
 		return err
 	}
 

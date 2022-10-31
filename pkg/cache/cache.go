@@ -7,11 +7,12 @@ import (
 
 	"github.com/songjiayang/exemplar-demo/pkg/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.uber.org/zap"
 )
 
 type Cache interface {
-	Get(string, context.Context) interface{}
-	Set(string, interface{}) error
+	Get(string, context.Context, *zap.Logger) interface{}
+	Set(string, interface{}, *zap.Logger) error
 }
 
 func getWithOtel(ctx context.Context, spanName, key string, getFunc func() (bool, interface{})) interface{} {

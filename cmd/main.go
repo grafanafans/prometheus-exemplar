@@ -11,7 +11,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/songjiayang/exemplar-demo/pkg/api"
-	"github.com/songjiayang/exemplar-demo/pkg/cache"
 	"github.com/songjiayang/exemplar-demo/pkg/dao"
 	"github.com/songjiayang/exemplar-demo/pkg/middleware"
 	"github.com/songjiayang/exemplar-demo/pkg/otel"
@@ -25,7 +24,7 @@ var (
 
 func main() {
 	cfg := zap.NewProductionConfig()
-	cfg.OutputPaths = []string{"/var/log/app.log"}
+	cfg.OutputPaths = []string{"stderr", "/var/log/app.log"}
 	logger, _ := cfg.Build()
 
 	//set otel provider
@@ -63,7 +62,7 @@ func main() {
 	r.Use(middleware.Otel(metricPath, urlMapping))
 	r.Use(middleware.Metrics(metricPath, urlMapping))
 
-	myApi := api.NewApi(logger, cache.NewRedisCache(logger), dao.NewMysqlBookService())
+	myApi := api.NewApi(logger)
 	r.GET("/v1/books", myApi.Book.Index)
 	r.GET("/v1/books/:id", myApi.Book.Show)
 

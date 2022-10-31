@@ -16,13 +16,13 @@ type Api struct {
 	cache  cache.Cache
 }
 
-func NewApi(logger *zap.Logger, cache cache.Cache, bs dao.BookService) *Api {
+func NewApi(logger *zap.Logger) *Api {
 	a := &Api{
 		logger: logger,
-		cache:  cache,
+		cache:  cache.NewRedisCache(),
 	}
 
-	a.Book = &Book{a, bs}
+	a.Book = &Book{a, dao.NewMysqlBookService()}
 	return a
 }
 
