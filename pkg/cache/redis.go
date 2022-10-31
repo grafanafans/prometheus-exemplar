@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"encoding/json"
+	"math/rand"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -34,6 +35,10 @@ func NewRedisCache(logger *zap.Logger) *RedisCache {
 
 func (c *RedisCache) Get(key string, ctx context.Context) interface{} {
 	return getWithOtel(ctx, "RedisCache.get", key, func() (bool, interface{}) {
+		if rand.Intn(100) <= 10 {
+			return false, nil
+		}
+
 		cmd := c.client.Get(ctx, key)
 
 		if err := cmd.Err(); err != nil {

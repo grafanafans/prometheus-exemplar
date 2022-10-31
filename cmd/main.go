@@ -1,45 +1,65 @@
 package main
 
 import (
+	"log"
 	"time"
 
-	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 
 	"github.com/songjiayang/exemplar-demo/pkg/api"
 	"github.com/songjiayang/exemplar-demo/pkg/cache"
 	"github.com/songjiayang/exemplar-demo/pkg/dao"
-	"github.com/songjiayang/exemplar-demo/pkg/lokicore"
 	"github.com/songjiayang/exemplar-demo/pkg/middleware"
 	"github.com/songjiayang/exemplar-demo/pkg/otel"
 )
 
 var (
-	appName    = "exemplar-demo"
-	metricPath = "/metrics"
+	appName      = "exemplar-demo"
+	metricPath   = "/metrics"
+	otelEndpoint = "collector:4318"
 )
 
 func main() {
-	logger := NewLokiLogger()
+	cfg := zap.NewProductionConfig()
+	cfg.OutputPaths = []string{"/var/log/app.log"}
+	logger, _ := cfg.Build()
 
 	//set otel provider
-	err := otel.SetTracerProvider(appName, "test", "http://tempo:14268/api/traces")
+	err := otel.SetTracerProvider(appName, "test", otelEndpoint)
 	if err != nil {
 		logger.Fatal(err.Error())
 	}
 
-	if err = dao.InitMysqlDB(); err != nil {
-		logger.Fatal(err.Error())
-	}
+	// init mysql with retry
+	go func() {
+		retryCount := 10
+
+		for i := 1; i <= retryCount; i++ {
+			err := dao.InitMysqlDB()
+			if err == nil {
+				return
+			}
+
+			logger.Error(err.Error())
+			time.Sleep(3 * time.Second)
+		}
+
+		log.Fatal("init mysql driver failed")
+	}()
 
 	r := gin.New()
-	r.Use(ginzap.Ginzap(logger, time.RFC3339, true))
-	r.Use(ginzap.RecoveryWithZap(logger, true))
-	urlMapping := NewUrlMapping()
+	urlMapping := func(path string) string {
+		switch path {
+		case "/v1/books", "/ping":
+			return path
+		default:
+			return "/v1/books/show"
+		}
+	}
 	r.Use(middleware.Otel(metricPath, urlMapping))
 	r.Use(middleware.Metrics(metricPath, urlMapping))
 
@@ -48,49 +68,15 @@ func main() {
 	r.GET("/v1/books/:id", myApi.Book.Show)
 
 	// register prometheus metrics router
-	metricHandler := promhttp.HandlerFor(
+	proemtheusHandler := promhttp.HandlerFor(
 		prometheus.DefaultGatherer,
 		promhttp.HandlerOpts{
 			EnableOpenMetrics: true,
 		},
 	)
-
 	r.GET(metricPath, func(ctx *gin.Context) {
-		metricHandler.ServeHTTP(ctx.Writer, ctx.Request)
+		proemtheusHandler.ServeHTTP(ctx.Writer, ctx.Request)
 	})
 
 	r.Run(":8080")
-}
-
-func NewLokiLogger() *zap.Logger {
-	logger, _ := zap.NewProduction()
-
-	cfg := &lokicore.LokiClientConfig{
-		URL:       "http://loki:3100/api/prom/push",
-		SendLevel: zapcore.InfoLevel,
-		Labels: map[string]string{
-			"app": appName,
-		},
-		TenantID: "demo",
-	}
-
-	lokiCore, err := lokicore.NewLokiCore(cfg)
-	if err != nil {
-		panic(err)
-	}
-
-	return logger.WithOptions(zap.WrapCore(func(core zapcore.Core) zapcore.Core {
-		return zapcore.NewTee(core, lokiCore)
-	}))
-}
-
-func NewUrlMapping() func(string) string {
-	return func(path string) string {
-		switch path {
-		case "/v1/books", "/ping":
-			return path
-		default:
-			return "/v1/books/show"
-		}
-	}
 }

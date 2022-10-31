@@ -37,10 +37,7 @@ func (*MockBookService) List(page, perPage int, ctx context.Context) ([]*Book, e
 	_, span := otel.Tracer().Start(ctx, "MockBookService.List")
 	defer span.End()
 
-	// 5% with 200ms sleep and return nil
-	if rand.Intn(100) <= 5 {
-		time.Sleep(250 * time.Millisecond)
-	}
+	time.Sleep(time.Duration(rand.Intn(300)) * time.Millisecond)
 
 	items := make([]*Book, 0, 10)
 
@@ -61,10 +58,7 @@ func (*MockBookService) Show(id string, ctx context.Context) (*Book, error) {
 	span.SetAttributes(attribute.String("id", id))
 	defer span.End()
 
-	// 5% with 200ms sleep and return nil
-	if rand.Intn(100) <= 5 {
-		time.Sleep(250 * time.Millisecond)
-	}
+	time.Sleep(time.Duration(rand.Intn(250)) * time.Millisecond)
 
 	return &Book{
 		Id:        id,
@@ -84,6 +78,8 @@ func (*MysqlBookService) List(page, perPage int, ctx context.Context) (items []*
 	_, span := otel.Tracer().Start(ctx, "MysqlBookService.List")
 	defer span.End()
 
+	time.Sleep(time.Duration(rand.Intn(300)) * time.Millisecond)
+
 	err = db.Find(&items).Limit(10).Error
 	return
 }
@@ -92,6 +88,9 @@ func (*MysqlBookService) Show(id string, ctx context.Context) (item *Book, err e
 	_, span := otel.Tracer().Start(ctx, "MysqlBookService.Show")
 	span.SetAttributes(attribute.String("id", id))
 	defer span.End()
+
+	// mysql qury random time duration
+	time.Sleep(time.Duration(rand.Intn(250)) * time.Millisecond)
 
 	err = db.Where(Book{Id: id}).Find(&item).Error
 	return

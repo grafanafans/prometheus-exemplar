@@ -1,0 +1,37 @@
+apiVersion: 1
+
+datasources:
+  - name: Mimir
+    type: prometheus
+    access: proxy
+    orgId: 1
+    url: http://lb.com/metrics
+    version: 1
+    editable: true
+    jsonData:
+      httpHeaderName1: 'X-Scope-OrgID'
+    secureJsonData:
+      httpHeaderValue1: 'demo'
+    isDefault: true
+  - name: Loki
+    type: loki
+    access: proxy
+    orgId: 1
+    url: http://lb.com/logs
+    version: 1
+    editable: true
+    jsonData:
+      httpHeaderName1: 'X-Scope-OrgID'
+    secureJsonData:
+      httpHeaderValue1: 'demo'
+  - name: Tempo
+    type: tempo
+    access: proxy
+    orgId: 1
+    url: http://lb.com/traces
+    version: 1
+    editable: true
+    jsonData:
+      httpHeaderName1: 'X-Scope-OrgID'
+    secureJsonData:
+      httpHeaderValue1: 'demo'

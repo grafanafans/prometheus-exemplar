@@ -12,6 +12,27 @@ import (
 	"github.com/songjiayang/exemplar-demo/pkg/otel"
 )
 
+func Otel(metricPath string, pathMapping func(string) string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.Request.URL.Path == metricPath {
+			c.Next()
+			return
+		}
+
+		ctx, span := otel.Tracer().Start(c.Request.Context(), "root")
+		defer span.End()
+
+		span.SetAttributes(attribute.String("path", pathMapping(c.Request.URL.Path)))
+
+		reqId := span.SpanContext().TraceID().String()
+		c.Request.Header.Add(api.XRequestID, reqId)
+		c.Header(api.XRequestID, reqId)
+
+		c.Set("ctx", ctx)
+		c.Next()
+	}
+}
+
 func Metrics(metricPath string, urlMapping func(string) string) gin.HandlerFunc {
 	httpDurationsHistogram := prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "http_durations_histogram_seconds",
@@ -42,26 +63,5 @@ func Metrics(metricPath string, urlMapping func(string) string) gin.HandlerFunc 
 				"traceID": c.GetHeader(api.XRequestID),
 			})
 		}
-	}
-}
-
-func Otel(metricPath string, pathMapping func(string) string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		if c.Request.URL.Path == metricPath {
-			c.Next()
-			return
-		}
-
-		ctx, span := otel.Tracer().Start(c.Request.Context(), "root")
-		defer span.End()
-
-		span.SetAttributes(attribute.String("path", pathMapping(c.Request.URL.Path)))
-
-		reqId := span.SpanContext().TraceID().String()
-		c.Request.Header.Add(api.XRequestID, reqId)
-		c.Header(api.XRequestID, reqId)
-
-		c.Set("ctx", ctx)
-		c.Next()
 	}
 }

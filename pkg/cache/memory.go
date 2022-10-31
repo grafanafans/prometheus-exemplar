@@ -26,7 +26,6 @@ func (c *MemoryCache) Get(key string, ctx context.Context) interface{} {
 	return getWithOtel(ctx, "MemoryCache.get", key, func() (bool, interface{}) {
 		// 3% with 200ms sleep and return nil
 		if rand.Intn(100) <= 3 {
-			time.Sleep(200 * time.Millisecond)
 			return false, nil
 		}
 

@@ -19,14 +19,6 @@ services:
     image: mysql:5.7.39
     environment:
       - MYSQL_ROOT_PASSWORD=supersecret
-  
-  app:
-    image: app:0.0.1
-    ports:
-      - "8080:8080"
-    depends_on:
-      - redis
-      - mysql
 
   grafana:
     image: grafana/grafana:9.1.2
@@ -37,11 +29,15 @@ services:
       - GF_USERS_DEFAULT_THEME=light
       - GF_LOG_MODE=console
       - GF_LOG_LEVEL=critical
+    volumes:
+      - ./config/grafana/grafana-provisioning-dashboards.yaml:/etc/grafana/provisioning/dashboards/provisioning-dashboards.yaml:ro
+      - ./config/grafana/grafana-provisioning-datasources.yaml:/etc/grafana/provisioning/datasources/provisioning-datasources.yaml:ro
+      - ./config/grafana/lgtm-demo.json:/var/lib/grafana/dashboards/lgtm-demo.json:ro
     ports:
       - "3000:3000"
       
   mimir:
-    image: grafana/mimir:2.2.0
+    image: grafana/mimir:2.4.0
     command: ["-config.file=/etc/mimir.yaml"]
     hostname: mimir
     depends_on:
@@ -69,30 +65,57 @@ services:
       - ./config/tempo.yaml:/etc/tempo.yaml
       - tempo-data:/tmp/tempo
     ports:
-      - "14268"      # jaeger
-      - "3200:3200"  # tempo
-    restart: on-failure
+      - "14268"    
+      - "4317"
+      - "3200:3200"
     depends_on:
       - minio
 
-  agent:
-    image: grafana/agent:latest
+  collector:
+    image: otel/opentelemetry-collector:0.63.1
+    command: ["--config=/etc/otel-collector-config.yaml"]
     volumes:
-      - ./config/agent.yaml:/etc/agent-config/agent.yaml
-    entrypoint:
-      - /bin/agent
-      - -config.file=/etc/agent-config/agent.yaml
-      - -enable-features=integrations-next
-      - -config.expand-env
-      - -config.enable-read-api
+      - ./config/otel-collector-config.yaml:/etc/otel-collector-config.yaml
     ports:
-      - "12345:12345"
+      - 8889:8889
+    depends_on:
+      - tempo
+      - mimir
+
+  collector-contrib:
+    image: otel/opentelemetry-collector-contrib:0.63.1
+    command: ["--config=/etc/otel-collector-contrib-config.yaml"]
+    volumes:
+      - ./config/otel-collector-contrib-config.yaml:/etc/otel-collector-contrib-config.yaml
+      - log-data:/var/log
+    depends_on:
+      - loki
+
+  lb.com:
+    image: nginx:1.23.1
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - 9090:80
     depends_on:
       - mimir
-      - app
+      - loki
+      - tempo
+  
+  app:
+    image: app:0.0.1
+    ports:
+      - "8080:8080"
+    volumes:
+      - log-data:/var/log
+    depends_on:
+      - redis
+      - mysql
+      - collector
 
 volumes:
   mimir-data:
   tempo-data:
   minio-data:
+  log-data:
 

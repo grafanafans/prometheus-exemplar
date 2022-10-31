@@ -11,18 +11,15 @@ import (
 var db *gorm.DB
 
 func InitMysqlDB() (err error) {
-	dsn := "root:supersecret@tcp(mysql:3306)/?charset=utf8mb4&parseTime=True&loc=Local"
+	if err := createDatabase(); err != nil {
+		return err
+	}
+
+	dsn := "root:supersecret@tcp(mysql:3306)/mydb?charset=utf8mb4&parseTime=True&loc=Local"
 	db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return err
 	}
-
-	err = db.Exec("CREATE DATABASE if not exists mydb").Error
-	if err != nil {
-		return err
-	}
-
-	db.Exec("USE mydb")
 
 	dbMigration()
 
@@ -42,4 +39,19 @@ func dbMigration() {
 			UpdatedAt: time.Now(),
 		})
 	}
+}
+
+func createDatabase() error {
+	dsn := "root:supersecret@tcp(mysql:3306)/?charset=utf8mb4&parseTime=True&loc=Local"
+	rootDb, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	if err != nil {
+		return err
+	}
+
+	err = rootDb.Exec("CREATE DATABASE if not exists mydb").Error
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
