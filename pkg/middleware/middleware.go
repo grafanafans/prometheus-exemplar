@@ -56,12 +56,14 @@ func Metrics(metricPath string, urlMapping func(string) string) gin.HandlerFunc 
 		url := urlMapping(c.Request.URL.Path)
 		elapsed := float64(time.Since(start)) / float64(time.Second)
 		observer := httpDurationsHistogram.WithLabelValues(method, url, status)
-		observer.Observe(elapsed)
+		
 
 		if elapsed > 0.2 {
 			observer.(prometheus.ExemplarObserver).ObserveWithExemplar(elapsed, prometheus.Labels{
 				"traceID": c.GetHeader(api.XRequestID),
 			})
+		} else {
+			observer.Observe(elapsed)
 		}
 	}
 }
