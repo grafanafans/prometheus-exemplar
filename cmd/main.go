@@ -14,6 +14,9 @@ import (
 	"github.com/songjiayang/exemplar-demo/pkg/dao"
 	"github.com/songjiayang/exemplar-demo/pkg/middleware"
 	"github.com/songjiayang/exemplar-demo/pkg/otel"
+
+	"net/http"
+	_ "net/http/pprof"
 )
 
 var (
@@ -76,6 +79,11 @@ func main() {
 	r.GET(metricPath, func(ctx *gin.Context) {
 		proemtheusHandler.ServeHTTP(ctx.Writer, ctx.Request)
 	})
+
+	// run http pprof server
+	go func() {
+		log.Println(http.ListenAndServe(":6060", nil))
+	}()
 
 	r.Run(":8080")
 }
