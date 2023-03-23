@@ -24,7 +24,6 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 1,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -166,6 +165,34 @@
       ],
       "title": "App trace",
       "type": "traces"
+    },
+    {
+      "datasource": {
+        "type": "phlare",
+        "uid": "phlare"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 22
+      },
+      "id": 8,
+      "targets": [
+        {
+          "datasource": {
+            "type": "phlare",
+            "uid": "phlare"
+          },
+          "groupBy": [],
+          "labelSelector": "{instance=\"app:6060\"}",
+          "profileTypeId": "process_cpu:cpu:nanoseconds:cpu:nanoseconds",
+          "queryType": "profile",
+          "refId": "A"
+        }
+      ],
+      "title": "CPU Profiling",
+      "type": "flamegraph"
     }
   ],
   "schemaVersion": 37,
@@ -202,6 +229,6 @@
   "timezone": "",
   "title": "LGTM Demo",
   "uid": "HR9NHQNVk",
-  "version": 8,
+  "version": 1,
   "weekStart": ""
 }

@@ -1,0 +1,10 @@
+target: agent
+
+scrape_configs:
+  - job_name: 'phlare'
+    static_configs:
+    - targets: ["app:6060"]
+
+client:
+  url: http://lb.com/profiles
+  tenant_id: demo

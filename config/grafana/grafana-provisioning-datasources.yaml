@@ -35,3 +35,16 @@ datasources:
       httpHeaderName1: 'X-Scope-OrgID'
     secureJsonData:
       httpHeaderValue1: 'demo'
+  - access: proxy
+    basicAuth: false
+    editable: true
+    name: Phlare
+    type: phlare
+    uid: phlare
+    orgId: 1
+    url: http://lb.com/profilings
+    version: 1
+    jsonData:
+      httpHeaderName1: 'X-Scope-OrgID'
+    secureJsonData:
+      httpHeaderValue1: 'demo'

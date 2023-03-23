@@ -4,25 +4,23 @@ A random duration response app to test Grafana LGTM stack.
 
 ## Installation
 
-1. clone code and build app
+- git clone code
 
 ```bash
 git clone git@github.com:grafanafans/prometheus-exemplar.git
 cd prometheus-exemplar
-go mod vendor
-make build
 ```
 
-2. start app
+- start app
 
 ```
-make start
+docker-compose up -d
 ```
 
-3. stop app
+stop app
 
 ```
-make down
+docker-compose down
 ```
 
 ## How to test
@@ -41,11 +39,14 @@ Then visit `http://localhost:3000` page to see demo app dashboard.
 ### Add data sources
 
 #### add Mimir 
+   
+Add exemplar configuration:  
 
-- HTTP URL：http://lb.com/metrics      
-- add exemplar configuration:  
 ![mimir-exemplar](https://user-images.githubusercontent.com/41465048/182307110-f9275ec3-923f-45c2-b373-5974f17ad42e.PNG)
 
+Notes:
+    
+- HTTP URL：http://lb.com/metrics   
 
 #### add Tempo  
 
